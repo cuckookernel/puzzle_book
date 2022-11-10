@@ -1,0 +1,3 @@
+epublib
+numpy
+opencv-python

@@ -6,27 +6,30 @@ import numpy as np
 
 import cv2
 
-SOLS_PATH = Path( "/home/mateo/_teos_gdrive/fun/tangram/individual-tangram-builder/" )
-SOLS_PATTERN = "tangram - *.png"
-PUZZLES_PATH = SOLS_PATH / "tangram-puzzles"
-PUZZLE_SUFFIX = ".solution.png"
+from tangram.bin.common import SOLS_PATH, SOLS_PATTERN, PZLS_PATH, PUZZLE_SUFFIX
 
 Array = np.ndarray
 # %%
 
 
-def _main():
+def run():
     # %%
-    PUZZLES_PATH.mkdir(exist_ok=True, parents=True)
-    paths = list( SOLS_PATH.glob(SOLS_PATTERN) )
+    PZLS_PATH.mkdir(exist_ok=True, parents=True)
+    sub_dirs = [elem for elem in list(SOLS_PATH.glob('*')) if elem.is_dir()]
     # %%
-    for path in paths:
-        out_path = PUZZLES_PATH / (path.stem + PUZZLE_SUFFIX)
-        print( path.stem )
-        img = cv2.imread( str( path ), cv2.IMREAD_UNCHANGED )
 
-        img2 = _convert_to_puzzle(img)
-        cv2.imwrite( str( out_path ), img2 )
+    for sub_dir in sub_dirs:
+        for path in sub_dir.glob(SOLS_PATTERN):
+            out_path = PZLS_PATH / sub_dir.name / (path.stem + PUZZLE_SUFFIX)
+            out_path.parent.mkdir(exist_ok=True)
+            if out_path.exists():
+                continue
+
+            print( path.stem )
+            img = cv2.imread( str( path ), cv2.IMREAD_UNCHANGED )
+
+            img2 = _convert_to_puzzle(img)
+            cv2.imwrite( str(out_path), img2 )
     # %%
 
 

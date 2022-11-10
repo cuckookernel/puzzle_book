@@ -1,8 +1,8 @@
 from pathlib import Path
 import datetime as dt
 import re
-DOWNLOADS_PATH = Path('/home/mateo/Downloads')
-DESTINATION_PATH = Path('/home/mateo/_teos_gdrive/fun/tangram/individual-tangram-builder/')
+DOWNLOADS_PATH = Path('/home/teo/Downloads')
+DESTINATION_PATH = Path('/home/teo/_teos_gdrive/fun/tangram/individual-tangram-builder/puzzles')
 
 EXT = "png"
 # %%
@@ -15,7 +15,7 @@ def _main():
 
     tangrams = [ path for path in paths if re.match( r"tangram ?\(\d+\).png", path.name ) ]
     print( f"tangrams has {len( tangrams )}" )
-    # %%
+
     for tang in tangrams:
         create_dt = dt.datetime.fromtimestamp( tang.lstat().st_ctime )
         tstamp_str = create_dt.isoformat().replace(':', '')[:-3]
@@ -23,3 +23,7 @@ def _main():
         print( str(tang), f"\n \t=> {new_path}" )
         tang.rename(new_path)
     # %%
+
+
+if __name__ == "__main__":
+  _main()

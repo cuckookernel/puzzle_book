@@ -1,12 +1,13 @@
-from typing import Dict, List
-from pathlib import Path
+import datetime as dt
 from collections import defaultdict
+from pathlib import Path
+from typing import Dict, List
+
 from ebooklib import epub
 from ebooklib.epub import EpubBook, EpubHtml
-import datetime as dt
-
-from tangram.bin.common import SOLS_PATH, PZLS_PATH
-from tangram.bin.solution_to_puzzle import run as s2p_run
+from tangram.bin.common import PZLS_PATH, SOLS_PATH
+from tangram.bin.download_renamer import downloads_to_solution_dir
+from tangram.bin.solution_to_puzzle import make_puzzles_from_solutions
 
 # define css style
 STYLE = """
@@ -17,7 +18,7 @@ body {
 h2 {
      text-align: left;
      text-transform: uppercase;
-     font-weight: 200;     
+     font-weight: 200;
 }
 ol {
         list-style-type: none;
@@ -38,8 +39,9 @@ nav[epub|type~='toc'] > ol > li > ol > li {
 def _main():
     # %%
     runfile("./tangram/bin/make_epub.py")
-    s2p_run()
-
+    downloads_to_solution_dir()
+    make_puzzles_from_solutions()
+    # %%
     pzl_ch_to_files = chapter_to_files(base_path=PZLS_PATH)
     sol_ch_to_files = chapter_to_files(base_path=SOLS_PATH)
 
@@ -60,7 +62,7 @@ TRNSL = {
         "buildings": "construcciones",
         "cats": "gatos",
         "convex": "convexos",
-        "geometric": "geometricos",
+        "geometric": "geométricos",
         "land-animals": "animales terrestres",
         "letters": "letras",
         "people": "personas",
@@ -68,24 +70,27 @@ TRNSL = {
         "ships": "barcos",
         "tools": "herramientas",
         "toys": "juguetes",
-        "tangram universe": "Universo Tangram",
-        "solutions": "Soluciones",
-        "symbols": "simbolos",
-        "puzzles": "Acertijos"
+        "tangram universe": "universo tangram",
+        "solutions": "soluciones",
+        "symbols": "símbolos",
+        "puzzles": "acertijos",
+        "wbg-transformed": "otros",
+        "see solution": "Ver solucion",
     },
     "de": {
         "abstract": "Abstrakt",
-        "aquatic-beasts": "",
-        "artifacts": "Ger“ate",
+        "airplanes": "Flugzeuge",
+        "aquatic-beasts": "Wassertiere",
+        "artifacts": "Geräte",
         "birds": "V“ogel",
-        "buildings": "Geb“aude",
+        "buildings": "Gebäude",
         "people": "Leute",
         "ships": "Schiffe",
         "tools": "herramientas",
         "toys": "Spielzeuge",
-        "puzzles": "R“atsel",
-        "solutions": "Losungen",
-        "tangram universe": "Tangram Universum"
+        "puzzles": "Rätsel",
+        "solutions": "Lösungen",
+        "tangram universe": "Tangram Universum",
     },
 }
 
@@ -97,7 +102,7 @@ class BookMaker:
         book = epub.EpubBook()
 
         book.set_identifier('asdasd12312')
-        book.set_title('Universo Tangram')
+        book.set_title( self.title('tangram universe') )
         book.set_language('es')
 
         book.add_author('Teo Restrepo')
@@ -110,33 +115,34 @@ class BookMaker:
         self.make_puzzles_page()
         pzl_chs = []
         for ch_name, files in pzl_ch_to_files.items():
-            self._make_chapter_front(ch_name, 'puzzles')
-            # pzl_chs.append(ch_front_pg)
+            ch_front_pg = self._make_chapter_front(ch_name, 'puzzles')
+            pzl_chs.append(ch_front_pg)
             ch_pgs = [ self.make_single_page(ch_name, idx, pzl_img_path, prefix='puzzles')
                        for idx, pzl_img_path in enumerate(files) ]
-            pzl_chs.append( (epub.Section(self.title(ch_name)), ch_pgs) )
+            # pzl_chs.append( (epub.Section(self.title(ch_name)), ch_pgs) )
 
         self.make_solutions_page()
         sol_chs = []
         for ch_name, files in sol_ch_to_files.items():
-            self._make_chapter_front(ch_name, 'solutions')
-            # sol_chs.append(ch_front_pg)
+            ch_front_pg = self._make_chapter_front(ch_name, 'solutions')
+            sol_chs.append(ch_front_pg)
 
             ch_pgs = [ self.make_single_page(ch_name, idx, sol_img_path, prefix='solutions')
                        for idx, sol_img_path in enumerate(files) ]
 
-            sol_chs.append( (epub.Section(self.title(ch_name)), ch_pgs) )
+            # sol_chs.append( (epub.Section(self.title(ch_name)), ch_pgs) )
 
         self.book.toc = (
             # epub.Link(puzzles_pg.file_name, puzzles_pg.title, puzzles_pg.id),
             (epub.Section(self.translator['puzzles'].title()),
              tuple(pzl_chs)),
             (epub.Section(self.translator['solutions'].title()),
-             tuple(sol_chs))
+             tuple(sol_chs)),
         )
 
-    def title(self, a_str: str):
-        return self.translator[a_str].title()
+    def title(self, a_str: str, caps: bool = True):
+        translated = self.translator[a_str]
+        return translated.title() if caps else translated
 
     def add_item(self, item):
         self.book.add_item(item)
@@ -183,9 +189,12 @@ class BookMaker:
         if prefix == "puzzles":
             puzzle_stem = img_path.stem
             sol_stem = puzzle_stem.replace('.puzzle', '')
-            print(f'sol_file_name = {sol_stem}.xhtml')
+            # print(f'sol_file_name = {sol_stem}.xhtml')
             pg.content = f"""<p><img src="{epub_file_name}" /></p>
-                         <p><a epub:type="noteref" href="{sol_stem}.xhtml">solution</a></p>"""
+                         <p><a epub:type="noteref" href="{sol_stem}.xhtml">
+                                {self.title('see solution')}
+                            </a>
+                        </p>"""
         else:
             pg.content = f'<img src="{epub_file_name}" />'
 

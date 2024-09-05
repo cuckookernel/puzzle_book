@@ -1,29 +1,31 @@
-from pathlib import Path
-import datetime as dt
 import re
+from pathlib import Path
+
+from tangram.bin.common import make_target_path
+
 DOWNLOADS_PATH = Path('/home/teo/Downloads')
-DESTINATION_PATH = Path('/home/teo/_teos_gdrive/fun/tangram/individual-tangram-builder/puzzles')
+DESTINATION_PATH = Path('/home/teo/_teos_gdrive/fun/tangram/individual-tangram-builder/solutions')
 
 EXT = "png"
 # %%
 
 
-def _main():
+def downloads_to_solution_dir():
     # %%
     paths = list(DOWNLOADS_PATH.glob(f"*.{EXT}"))
     print( f"paths has {len(paths)}")
 
-    tangrams = [ path for path in paths if re.match( r"tangram ?\(\d+\).png", path.name ) ]
-    print( f"tangrams has {len( tangrams )}" )
+    source_paths = [ path for path in paths if re.match( r"tangram ?\(\d+\).png", path.name ) ]
+    print( f"tangrams has {len( source_paths)}" )
 
-    for tang in tangrams:
-        create_dt = dt.datetime.fromtimestamp( tang.lstat().st_ctime )
-        tstamp_str = create_dt.isoformat().replace(':', '')[:-3]
-        new_path = DESTINATION_PATH / f"tangram - {tstamp_str}.png"
-        print( str(tang), f"\n \t=> {new_path}" )
-        tang.rename(new_path)
+    for source_path in source_paths:
+        target_path = make_target_path(source_path, DESTINATION_PATH)
+
+        print( str(source_path), f"\n \t=> {target_path}" )
+        source_path.rename(target_path)
     # %%
 
 
+
 if __name__ == "__main__":
-  _main()
+    downloads_to_solution_dir()
